@@ -40,22 +40,15 @@ def goto(xGoal:int, yGoal:int):
         rospy.loginfo("Waiting Odometry data")
         rospy.loginfo("position received = %d", g_positionReceived)
         rate.sleep()
+
     
-    #publish velocity of robot 0.1m/s forward
     velocity_data = Twist()
-    actual_quaternion = g_robotPosition.pose.pose.orientation
-    yaw = euler_from_quaternion([
-        actual_quaternion.x,
-        actual_quaternion.y,
-        actual_quaternion.z,
-        actual_quaternion.w
-    ])[2]
+    #Tryong to solve the problem of moving in the wrong direction, we need to convert the error from world frame to robot frame
+
     x_error = xGoal - g_robotPosition.pose.pose.position.x
     y_error = yGoal - g_robotPosition.pose.pose.position.y
-    robot_x_error = math.cos(yaw) * x_error + math.sin(yaw) * y_error
-    robot_y_error = -math.sin(yaw) * x_error + math.cos(yaw) * y_error
-    velocity_data.linear.x = 0.1 * math.copysign(1, robot_x_error)
-    velocity_data.linear.y = 0.1 * math.copysign(1, robot_y_error)
+    velocity_data.linear.x = 0.1 * math.copysign(1, x_error)
+    velocity_data.linear.y = 0.1 * math.copysign(1, y_error)
     cmdvel_pub.publish(velocity_data)
     rospy.loginfo("move the robot")
     
@@ -116,7 +109,6 @@ def moveto(xGoal: float, yGoal: float):
         rate.sleep()
     
     velocity_data = Twist()
-    rospy.loginfo("Déplacement vers [%f, %f]", xGoal, yGoal)
     
     while not rospy.is_shutdown():
 
@@ -124,7 +116,7 @@ def moveto(xGoal: float, yGoal: float):
         current_y = g_robotPosition.pose.pose.position.y
         
         quaternion = g_robotPosition.pose.pose.orientation
-        _, _, yaw = euler_from_quaternion([quaternion.x, quaternion.y, quaternion.z, quaternion.w])
+        yaw = euler_from_quaternion([quaternion.x, quaternion.y, quaternion.z, quaternion.w])[2]
         
         x_error = xGoal - current_x
         y_error = yGoal - current_y
@@ -146,20 +138,17 @@ def moveto(xGoal: float, yGoal: float):
             velocity_data.linear.x = 0.0
             velocity_data.angular.z = 0.3 * math.copysign(1, angle_error)
         else:
-            velocity_data.linear.x = 0.15  
-            velocity_data.angular.z = 0.8 * angle_error 
+            velocity_data.linear.x = 0.1  
+            velocity_data.angular.z = 0.3 * angle_error 
         cmdvel_pub.publish(velocity_data)
         rate.sleep()
 
 def Task1():
+    yawto(0)
     goto(0, 0)
-    rate.sleep()
     goto(1, 0)
-    rate.sleep()
     goto(1, 1)
-    rate.sleep()
     goto(0, 1)
-    rate.sleep()
     goto(0, 0)
 
 def Task2():
@@ -177,19 +166,14 @@ def Task2V2():
     yawto(0)
     goto(0, 0)
     moveto(1, 0)
-    yawto(1.57)
     moveto(1, 1)
-    yawto(3.14)
     moveto(0, 1)
-    yawto(-1.57)
     moveto(0, 0)
-    
+    yawto(0)
+  
 
 if __name__ == '__main__':
     try:
-        Task2V2()
+        Task1()
     except rospy.ROSInterruptException:
         pass
-            
-    
-    
